@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+	id="com.deazzle.launchapp"
+	version="0.0.1">
+
+    <name>launchApp</name>
+    <description>Phonegap plugin for check or launch other application in android device.</description>
+    <license>MIT</license>
+    <keywords>cordova,launchapp</keywords>
+
+    <js-module src="www/launchApp.js" name="launchapp">
+        <merges target="launchApp" />
+    </js-module>
+
+    <!-- android -->
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="launchApp">
+                <param name="android-package" value="com.deazzle.launchapp.launchApp"/>
+            </feature>
+        </config-file>
+
+        <source-file src="src/android/launchApp.java" target-dir="src/com/deazzle/launchapp" />
+    </platform>
+
+</plugin>

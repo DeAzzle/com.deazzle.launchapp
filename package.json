@@ -1,0 +1,25 @@
+{
+  "name": "com.deazzle.launchapp",
+  "version": "0.0.1",
+  "description": "Cordova Plugin to invoke other app and to get response.",
+  "cordova": {
+    "id": "com.deazzle.launchapp",
+    "platforms": [
+      "android"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deazzle/com.deazzle.launchapp.git"
+  },
+  "keywords": [
+    "cordova",
+    "launchapp"
+    "cordova-android"
+  ],
+  "homepage": "www.deazzle.in",
+  "author": "deazzle",
+  "bugs": {
+    "url": ""
+  }
+}
