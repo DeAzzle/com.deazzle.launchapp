@@ -197,8 +197,29 @@ public class launchApp extends CordovaPlugin {
 
 	public void onActivityResult(int requestCode, int resultCode, Intent intent) {
 		Log.d(strTAG, "Inside onActivityResult");
+		boolean flagResponse = false;
 		if((null != intent) && (requestCode == START_UPI) && (resultCode == RESULT_OK)) {
-			this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, intent.getStringExtra("response")));
+				try {
+					String[] strArray = intent.getStringExtra("response").split("&");
+                    for(int i =0; i<strArray.length; i++) {
+                    
+                        if(strArray[i].startsWith("txnRef")){
+							flagResponse = true;
+                            String[] txnRef = strArray[i].split("=");
+                            //txnRef[1];
+							this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, txnRef[1]));//intent.getStringExtra("response")));
+							break;
+                        }
+						
+                    }
+					if(flagResponse==false) {
+						this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR));
+					}
+				} catch (Exception e) {
+					Log.d(strTAG, "Error");
+					this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR));
+				}
+			
 		} else {
 			this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR));
 		}
