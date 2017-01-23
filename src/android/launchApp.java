@@ -1,14 +1,14 @@
 package com.deazzle.launchapp;
 
 import android.content.ActivityNotFoundException;
-import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
+import android.content.pm.Signature;
 import android.net.Uri;
-import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -20,6 +20,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Field;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -32,6 +35,8 @@ public class launchApp extends CordovaPlugin {
 
 	private CallbackContext callbackContext;
 
+	private Context launchContext;
+
 	private boolean NO_PARSE_INTENT_VALS = false;
 
 	public launchApp() {}
@@ -39,6 +44,7 @@ public class launchApp extends CordovaPlugin {
 	@Override
 	public boolean execute(String pluginAction, JSONArray appLaunchArguments, final CallbackContext callbackContext) throws JSONException {
 		this.callbackContext = callbackContext;
+		this.launchContext = this.cordova.getActivity();
 		if ("launch".equals(pluginAction)) {
 			this.launch(appLaunchArguments, callbackContext);
 		}
@@ -56,6 +62,11 @@ public class launchApp extends CordovaPlugin {
 				JSONObject key_value;
 				String intentsExtrasKey;
 				String intentsExtrasValue;
+				
+				JSONObject bankAppDetails;// = new HashMap<>();
+				//PackageManager packageManager = launchContext.getPackageManager();
+				PackageManager packageManager = cordova.getActivity().getApplicationContext().getPackageManager();
+				List<String> whitelist = new ArrayList<String>();
 
 				try {
 					if (appLaunchArguments.get(0) instanceof JSONObject) {
@@ -100,6 +111,49 @@ public class launchApp extends CordovaPlugin {
 						if (intentsParameters.has("category")) {
 							launchIntent.addCategory(extractValueForIntent(intentsParameters.getString("category")));
 						}
+						
+						//Bank details
+						if (intentsParameters.has("bankAppDetails")) {
+							
+							bankAppDetails = intentsParameters.getJSONObject("bankAppDetails");
+							Iterator<?> bankAppKeys = bankAppDetails.keys();
+
+							while( bankAppKeys.hasNext() ){
+								String bank = (String)bankAppKeys.next();
+								String bankSign = bankAppDetails.getString(bank);
+								Log.d(strTAG, "Bank details key = " + bank + " and value = " + bankSign);
+								try {
+									PackageInfo packageInfo=packageManager.getPackageInfo(bank,PackageManager.GET_META_DATA | PackageManager.GET_SIGNATURES);
+									if (null != packageManager.getInstallerPackageName(bank)) { //If installed from Play Store
+										if (packageManager.getInstallerPackageName(bank).equals("com.android.vending")) {
+											String currentBankAppSign = "";
+											int totalSignature = packageInfo.signatures.length;
+											for (Signature signature : packageInfo.signatures) {
+												MessageDigest md = MessageDigest.getInstance("SHA");
+												md.update(signature.toByteArray());
+												//String currentSignature1 = Base64.encodeToString(md.digest(), Base64.DEFAULT);
+												currentBankAppSign = currentBankAppSign + Base64.encodeToString(md.digest(), Base64.NO_WRAP);
+												if(totalSignature > 1) { //Handle apps with multiple signs by having appended signs
+													totalSignature--;
+													continue;
+												}
+												Log.d(strTAG, "############  current signature of  " + bank + " is " + currentBankAppSign + "  complete");
+												//Log.d(strTAG, bank[index] + " current signature is " + currentSignature + " and whitelisted sign is " + bankSign[index]);
+												//Log.d(strTAG, bank[index] + " signature1 " + currentSignature1 + "whitelisted sign " + bankSign[index]);
+												if(currentBankAppSign.equals(bankSign)) {
+													Log.d(strTAG,"Adding to whitelist " + bank);
+													whitelist.add(bank);
+												}
+											}
+										}
+									}
+								} catch (PackageManager.NameNotFoundException e) {
+									Log.d(strTAG, e.toString() + " package does not exist on phone");
+								} catch(NoSuchAlgorithmException e) {
+									Log.d(strTAG,e.toString());
+								}
+							}
+						}
 						if (!appLaunchArguments.isNull(1)) {
 							intentsExtra = appLaunchArguments.getJSONObject(1);
 							Iterator<String> value = intentsExtra.keys();
@@ -112,9 +166,8 @@ public class launchApp extends CordovaPlugin {
 
 						if (intentsParameters.has("startActivity") && "forResult".equals(intentsParameters.getString("startActivity"))) {
 							Log.d(strTAG, "New activity for result to be launched...");
-							Intent chooser = Intent.createChooser(launchIntent, "Pay with...");
-
-							PackageManager packageManager = cordova.getActivity().getPackageManager();
+							//Intent chooser = Intent.createChooser(launchIntent, "Pay with...");
+							Intent chooser = CustomIntentSelector.create(packageManager,launchIntent, "Pay with ",whitelist);//Intent.createChooser(intent, "Pay with...");
 							List<ResolveInfo> activities = packageManager.queryIntentActivities(launchIntent, 0);
 							boolean isIntentSafe = activities.size() > 0;
 
@@ -127,7 +180,7 @@ public class launchApp extends CordovaPlugin {
 								callbackContext.error("Error!");
 							}
 						} else {
-							PackageManager packageManager = cordova.getActivity().getPackageManager();
+
 							List<ResolveInfo> activities = packageManager.queryIntentActivities(launchIntent, 0);
 							boolean isIntentSafe = activities.size() > 0;
 
@@ -212,7 +265,7 @@ public class launchApp extends CordovaPlugin {
                         }
 						
                     }
-					if(flagResponse==false) {
+					if(!flagResponse) {
 						this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR));
 					}
 				} catch (Exception e) {
