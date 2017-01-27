@@ -25,6 +25,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import com.deazzle.launchapp.CustomIntentSelector;
 
 import static android.app.Activity.RESULT_OK;
 
