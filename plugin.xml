@@ -22,6 +22,7 @@
         </config-file>
 
         <source-file src="src/android/launchApp.java" target-dir="src/com/deazzle/launchapp" />
+	<source-file src="src/android/CustomIntentSelector.java" target-dir="src/com/deazzle/launchapp" />    
     </platform>
 
 </plugin>
