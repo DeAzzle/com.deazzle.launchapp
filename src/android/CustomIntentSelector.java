@@ -14,7 +14,15 @@ import java.util.List;
 
 public class CustomIntentSelector {
     public static final String strTAG = "CustomIntentSelector";
-    public static Intent create(PackageManager pm, Intent target, String title,
+    public int numberOfApps;
+    CustomIntentSelector(){
+        numberOfApps = 0;
+    }
+    public int getNumberOfApps() {
+        return numberOfApps;
+
+    }
+    public Intent create(PackageManager pm, Intent target, String title,
                                 List<String> banksWhiteList) {
         Intent localIntent = new Intent(target.getAction());
         localIntent.setData(target.getData());
@@ -30,6 +38,7 @@ public class CustomIntentSelector {
             localPackInfo.put("className", resolveInfo.activityInfo.name);
             localPackInfo.put("simpleName", String.valueOf(resolveInfo.activityInfo.loadLabel(pm)));
             Log.d(strTAG, "The local package is " + localPackInfo.toString());
+            numberOfApps++;
             packageInfo.add(localPackInfo);
         }
         if (packageInfo.isEmpty()) {
@@ -57,7 +66,6 @@ public class CustomIntentSelector {
         intentsForBanks.remove(0);
         Parcelable[] intentsForAuthenticBanks =
                 intentsForBanks.toArray(new Parcelable[intentsForBanks.size()]);
-
         //Needs to be used modifying the intents
         chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, intentsForAuthenticBanks);
         return chooserIntent;
