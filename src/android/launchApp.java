@@ -9,7 +9,6 @@ import android.content.pm.Signature;
 import android.net.Uri;
 import android.util.Base64;
 import android.util.Log;
-import android.widget.Toast;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -61,6 +60,7 @@ public class launchApp extends CordovaPlugin {
 			PackageManager packageManager = cordova.getActivity().getApplicationContext().getPackageManager();
 			List<String> whitelist = new ArrayList<String>();
 
+
 			try {
 				if (appLaunchArguments.get(0) instanceof JSONObject) {
 					intentsParameters = appLaunchArguments.getJSONObject(0);
@@ -74,7 +74,7 @@ public class launchApp extends CordovaPlugin {
 						launchIntent = manager.getLaunchIntentForPackage(intentsParameters.getString("application"));
 
 						if (launchIntent == null) {
-							callbackContext.error("Error. No app found.");
+							callbackContext.error("{\"ResultCode\":\"ErrorNoApp\",\"ResultData\":\"No such app\"}");
 							return;
 						}
 					}
@@ -160,17 +160,18 @@ public class launchApp extends CordovaPlugin {
 					if (intentsParameters.has("startActivity") && "forResult".equals(intentsParameters.getString("startActivity"))) {
 						Log.d(strTAG, "New activity for result to be launched...");
 						//Intent chooser = Intent.createChooser(launchIntent, "Pay with");
-						Intent chooser = CustomIntentSelector.create(packageManager,launchIntent, "Pay with ",whitelist);//Intent.createChooser(intent, "Pay with...");
-						List<ResolveInfo> activities = packageManager.queryIntentActivities(launchIntent, 0);
-						boolean isIntentSafe = activities.size() > 0;
+						CustomIntentSelector customIntentSelector = new CustomIntentSelector();
+						Intent chooser = customIntentSelector.create(packageManager,launchIntent, "Pay with ",whitelist);//Intent.createChooser(intent, "Pay with...");
+						List<ResolveInfo> activities = packageManager.queryIntentActivities(chooser, 0);
+						boolean isIntentSafe = customIntentSelector.getNumberOfApps() > 0 ;
 
 						//if there is any app to receive this intent
 						if (isIntentSafe) {
 							cordova.setActivityResultCallback(com.deazzle.launchapp.launchApp.this);
 							cordova.getActivity().startActivityForResult(chooser, START_UPI, null);
 						} else {
-							(Toast.makeText(cordova.getActivity(), "No UPI app installed on this phone. Please install any one from PlayStore", Toast.LENGTH_LONG)).show();
-							callbackContext.error("Error!");
+							callbackContext.error("{\"ResultCode\":\"ErrorNoApp\",\"ResultData\":\"No UPI app\"}");
+
 						}
 					} else {
 
@@ -181,29 +182,28 @@ public class launchApp extends CordovaPlugin {
 						if (isIntentSafe) {
 							cordova.getActivity().startActivity(launchIntent);
 						} else {
-							(Toast.makeText(cordova.getActivity(), "No UPI app installed on this phone. Please install any one from PlayStore", Toast.LENGTH_LONG)).show();
-							callbackContext.error("Error!");
+							callbackContext.error("{\"ResultCode\":\"ErrorNoApp\",\"ResultData\":\"No UPI app\"}");
 						}
 					}
 				}
 				else {
-					callbackContext.error("Error!");
+					callbackContext.error("{\"ResultCode\":\"Error\",\"ResultData\":\"No options\"}");
 				}
 			}
 			catch (JSONException e) {
-				callbackContext.error("JSONException: " + e.getMessage());
+				callbackContext.error("{\"ResultCode\":\"Error\",\"ResultData\":" + e.getMessage() +"}");
 				e.printStackTrace();
 			}
 			catch (IllegalAccessException e) {
-				callbackContext.error("IllegalAccessException: " + e.getMessage());
+				callbackContext.error("{\"ResultCode\":\"Error\",\"ResultData\":" + e.getMessage() +"}");
 				e.printStackTrace();
 			}
 			catch (NoSuchFieldException e) {
-				callbackContext.error("NoSuchFieldException: " + e.getMessage());
+				callbackContext.error("{\"ResultCode\":\"Error\",\"ResultData\":"+e.getMessage()+"}");
 				e.printStackTrace();
 			}
 			catch (ActivityNotFoundException e) {
-				callbackContext.error("ActivityNotFoundException: " + e.getMessage());
+				callbackContext.error("{\"ResultCode\":\"Error\",\"ResultData\":"+e.getMessage()+"}");
 				e.printStackTrace();
 			}
 			}
@@ -263,17 +263,17 @@ public class launchApp extends CordovaPlugin {
 					}
 				}
 				if(!flagResponse) {
-					this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR));
+					this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, "{\"ResultCode\":\"Error\",\"ResultData\":\"UPI app returned status as failure\"}"));
 				} else {
 					//txnRef if null we are throwing error
 					this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, txnRef[1]));
 				}
 			} catch (Exception e) {
 				Log.d(strTAG, "Error");
-				this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR));
+				this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, "{\"ResultCode\":\"Error\",\"ResultData\":\"UPI app returned error. \""+ e + "}"));
 			}
 		} else {
-			this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR));
+			this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, "{\"ResultCode\":\"Error\",\"ResultData\":\"UPI app returned error.\"}"));
 		}
 
 	}
